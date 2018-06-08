@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <!-- Give product a unique ID per platform -->
+  <?if $(var.Platform)=x64 ?>
+  <?define ProductCode = "{454C1EBF-E014-42EA-8FC4-1BBC7EA13E9A}" ?>
+  <?else?>
+  <?define ProductCode = "{3335FF43-BBD1-4D27-894C-6FFFC9D3FB89}" ?>
+  <?endif?>
+
+  <!-- Fixed upgrade Id -->
+  <?define UpgradeCode = "{CC68C962-AC27-4954-9123-89EFA28A8B97}" ?>
+
+  <!-- Define main product -->
+  <Product Id="$(var.ProductCode)"
+           Name="!(loc.ProductName_$(var.Platform))"
+           Language="!(loc.Language)"
+           Version="$(var.BuildVersion)"
+           Manufacturer="!(loc.Company)"
+           UpgradeCode="$(var.UpgradeCode)">
+
+    <!-- Provide package details -->
+    <Package InstallerVersion="200"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="$(var.Platform)"
+             Manufacturer="!(loc.Company)"
+             Description="!(loc.Description)"
+             Keywords="!(loc.Keywords)"
+             Comments="!(loc.Comments)"
+             Languages="!(loc.Language)"
+             />
+
+    <!-- Downgrade error message -->
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeErrorMessage)" />
+
+    <!-- Include .cab file into .msi file -->
+    <MediaTemplate
+      EmbedCab="yes"
+      />
+
+    <!-- Define main app icon -->
+    <Icon Id="icon.ico" SourceFile="$(var.BatchImportIncidents.ProjectDir)\Exelcia-IT.ico" />
+
+    <!-- Use the icon.ico icon for this installer (shows up in Add/Remove programs) -->
+    <Property Id="ARPPRODUCTICON">icon.ico</Property>
+    <!-- Help/Support website (shows in the Add/Remove programs) -->
+    <Property Id="ARPURLINFOABOUT">http://reunion.orange.fr/</Property>
+
+    <!-- Create a basic UI for the installer -->
+
+    <UI Id='Mondo'>
+      <UIRef Id="WixUI_Mondo" />
+      <UIRef Id="WixUI_ErrorProgressText" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="SetupTypeDlg"  Order="3">1</Publish>
+      <!-- skip the page on the way back too -->
+      <Publish Dialog="SetupTypeDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg"  Order="3">1</Publish>
+    </UI>
+
+
+    <!-- Change the installer UI background images -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.ProjectDir)\Assets\License.rtf" />
+
+    <!-- Define components, shortcuts, files etc... for installer -->
+    <Feature Id="ProductFeature" Title="ConsoleApp" Level="1">
+
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="PublishedComponents" />
+
+    </Feature>
+
+  </Product>
+
+</Wix>
+

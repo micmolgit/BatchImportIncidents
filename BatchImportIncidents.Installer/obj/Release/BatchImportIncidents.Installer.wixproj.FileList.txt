@@ -1,0 +1,9 @@
+D:\Orange\OREKA\DCRM\ORM_trunk\Batches\BatchImportIncidents\BatchImportIncidents.Installer\bin\Release\BatchImportIncidents-Release-x64.msi
+D:\Orange\OREKA\DCRM\ORM_trunk\Batches\BatchImportIncidents\BatchImportIncidents.Installer\bin\Release\BatchImportIncidents-Release-x64.wixpdb
+obj\Release\Components.wixobj
+obj\Release\ComponentsGenerated.wixobj
+obj\Release\Directories.wixobj
+obj\Release\Product.wixobj
+obj\Release\BatchImportIncidents.Installer.wixproj.BindContentsFileListnull.txt
+obj\Release\BatchImportIncidents.Installer.wixproj.BindOutputsFileListnull.txt
+obj\Release\BatchImportIncidents.Installer.wixproj.BindBuiltOutputsFileListnull.txt
