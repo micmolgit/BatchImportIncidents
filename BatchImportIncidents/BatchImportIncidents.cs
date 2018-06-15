@@ -39,6 +39,7 @@ namespace BatchImportIncidents
         {
             this.LoadConfiguration();
         }
+
         #endregion // Constructor
 
         #region Terminate
@@ -99,16 +100,16 @@ namespace BatchImportIncidents
             var entriesCpt = 0;
 
             if (_IsCallingImport)
-                entriesCpt = await ProcessImport(_IsCallingResolve);
-            else if(_IsCallingResolve)
-                entriesCpt = await ProcessResolve();
+                entriesCpt = await ProcessImportAsync();
+            else if (_IsCallingResolve)
+                entriesCpt = await ProcessResolveAsync();
 
             return entriesCpt;
         }
         #endregion // Process
 
-        #region ProcessResolve
-        public async Task<int> ProcessResolve()
+        #region ProcessResolveAsync
+        public async Task<int> ProcessResolveAsync()
         {
             var entriesCpt = 0;
 
@@ -125,14 +126,14 @@ namespace BatchImportIncidents
                 var countQuery = countRead.Item2;
                 var dataQuery = dataRead.Item2;
 
-                MiscHelper.WriteLine("Counting the number of incident to resolve...");
+                MiscHelper.PrintMessage("Counting the number of incident to resolve...");
                 var incidentCountTimer = new MiscHelper();
                 incidentCountTimer.StartTimeWatch();
                 var maxCount = countQuery.Count();
                 incidentCountTimer.StopTimeWatch();
-                MiscHelper.WriteLine($"\n\n{maxCount} were scanned in {incidentCountTimer.GetDuration()}");
+                MiscHelper.PrintMessage($"\n\n{maxCount} were scanned in {incidentCountTimer.GetDuration()}");
 
-                MiscHelper.WriteLine("Connecting do DCRM...");
+                MiscHelper.PrintMessage("Connecting do DCRM...");
                 DcrmConnectorFactory.GetContext();
 
                 var dataHeader = dataRead.Item1;
@@ -140,46 +141,41 @@ namespace BatchImportIncidents
                 // writting header to .csv output file
                 var headerLine = GetHeaderLine(dataHeader);
 
-                
                 var resolvencidentThreads = new List<Thread>();
 
-                var processResolveTimer = new MiscHelper();
-                processResolveTimer.StartTimeWatch();
+                var ResolveTimer = new MiscHelper();
+                ResolveTimer.StartTimeWatch();
+
+                var resolveIncidentTasks = new List<Task<bool>>();
 
                 // read every lines of the .csv source file and translate them into the .csv output file
                 foreach (var line in dataQuery)
                 {
                     if (line.Count > 0)
                     {
-                        try
-                        {
-                            var demande = GetDemandeFromLine(dataHeader, line);
-                            var guidDemande = demande.GetGuid();
-                            
-                            var th = demande.Resolve(++entriesCpt, maxCount, guidDemande, true);
-                            resolvencidentThreads.Add(th);
-                            //resolvencidentThreads.Add(isResolvedTask);
-                        }
-                        catch (Exception ex)
-                        {
-                            MiscHelper.WriteLine($"Could not processs entry line : {entriesCpt} : {ex.Message}");
-                        }
+                        var demande = GetDemandeFromLine(dataHeader, line);
+                        var guidDemande = demande.GetGuid();
+                        demande.AddResolveIncidentWorkerTask(resolveIncidentTasks, guidDemande, ++entriesCpt, maxCount);
                     }
                 }
-                // We need to wait for all the data collection tasks to be completed before processing the data
-                //await System.Threading.Tasks.Task.WhenAll(resolveIncidentTasks);
-                foreach (Thread t in resolvencidentThreads)
-                    t.Join();
-                processResolveTimer.StopTimeWatch();
-                MiscHelper.WriteLine($"\n\n{entriesCpt} incidents were resolved in {processResolveTimer.GetDuration()}");
+
+                // We need to wait for all tasks to be terminated
+                MiscHelper.PrintMessage($"\nProcessing the {maxCount} incidents, please wait ...");
+
+                await System.Threading.Tasks.Task.WhenAll(resolveIncidentTasks);
+
+                MiscHelper.PrintMessage("\nAll The operation completed successfully");
+
+                ResolveTimer.StopTimeWatch();
+                MiscHelper.PrintMessage($"\n\n{entriesCpt} incidents were resolved in {ResolveTimer.GetDuration()}");
             }
 
             return entriesCpt;
         }
-        #endregion // ProcessResolve
+        #endregion // ProcessResolveAsync
 
-        #region ProcessImport
-        public async Task<int> ProcessImport(bool isCallingResolve)
+        #region ProcessImportAsync
+        public async Task<int> ProcessImportAsync()
         {
             var entriesCpt = 0;
 
@@ -196,24 +192,26 @@ namespace BatchImportIncidents
                 var dataQuery = dataRead.Item2;
                 var countQuery = countRead.Item2;
 
-                MiscHelper.WriteLine("Counting the number of incidents to import...");
+                MiscHelper.PrintMessage("Counting the number of incidents to import...");
                 var incidentCountTimer = new MiscHelper();
                 incidentCountTimer.StartTimeWatch();
                 var maxCount = countQuery.Count();
                 incidentCountTimer.StopTimeWatch();
-                MiscHelper.WriteLine($"{maxCount} were scanned in {incidentCountTimer.GetDuration()}");
+                MiscHelper.PrintMessage($"{maxCount} were scanned in {incidentCountTimer.GetDuration()}");
 
-                MiscHelper.WriteLine("Connecting do DCRM...");
+                MiscHelper.PrintMessage("Connecting do DCRM...");
                 DcrmConnectorFactory.GetContext();
 
                 var dataHeader = dataRead.Item1;
 
                 var headerLine = GetHeaderLine(dataHeader);
 
-                var createIncidentThreads = new List<Thread>();
+                var createIncidentTasks = new List<Task<bool>>();
 
-                var processImportTimer = new MiscHelper();
-                processImportTimer.StartTimeWatch();
+                var ImportTimer = new MiscHelper();
+                ImportTimer.StartTimeWatch();
+
+                MiscHelper.PrintMessage($"\nProcessing the {maxCount} incidents, please wait ...");
 
                 // read every lines of the .csv source file and translate them into the .csv output file
                 foreach (var line in dataQuery)
@@ -222,26 +220,22 @@ namespace BatchImportIncidents
                     {
                         var demande = GetDemandeFromLine(dataHeader, line);
                         demande.Process();
-                        Thread th = demande.Create(++entriesCpt, maxCount, isCallingResolve);
-                        createIncidentThreads.Add(th);
-
-                       // var createTask =  demande.CreateIntoDcrm(++entriesCpt, maxCount, isCallingResolve);                        //createTask.Start();
-
-                        //createIncidentTasks.Add(createTask);
+                        demande.AddCreateIncidentWorkerTask(createIncidentTasks, ++entriesCpt, maxCount);
                     }
-                }
+                }                
 
-                foreach (Thread th in createIncidentThreads)
-                    th.Join();
-                // We need to wait for all the data collection tasks to be completed before computing elapsed time
-                //await System.Threading.Tasks.Task.WhenAll(createIncidentTasks);
-                processImportTimer.StopTimeWatch();
-                MiscHelper.WriteLine($"\n\n{entriesCpt} incidents were created in {processImportTimer.GetDuration()}");
+                // We need to wait for all tasks to be terminated
+                await System.Threading.Tasks.Task.WhenAll(createIncidentTasks);
+
+                MiscHelper.PrintMessage("\nAll The operation completed successfully");
+
+                ImportTimer.StopTimeWatch();
+                MiscHelper.PrintMessage($"\n\n{entriesCpt} incidents were created in {ImportTimer.GetDuration()}");
             }
 
             return entriesCpt;
         }
-        #endregion // ProcessImport
+        #endregion // ProcessImportAsync
 
         #region GetConfiguration
         private IConfigurationRoot GetConfiguration()

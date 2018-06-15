@@ -61,7 +61,7 @@ namespace DCRM_Utils
                 {
                     throw new InvalidOperationException("Authentication could not be completed");
                 }
-                MiscHelper.WriteLine($"Successfully connected to :\n{_serverConfig.OrganizationUri}\n");
+                MiscHelper.PrintMessage($"Successfully connected to :\n{_serverConfig.OrganizationUri}\n");
             }
         }
         #endregion // Connect
@@ -83,14 +83,19 @@ namespace DCRM_Utils
 
     class DcrmConnectorFactory
     {
+        #region Properties
         private static DcrmConnector _dcrmConnector;
+        #endregion // Properties
 
+        #region Create
         private static DcrmConnector Create()
         {
             _dcrmConnector = new DcrmConnector();
             return _dcrmConnector;
         }
+        #endregion // Create
 
+        #region Get
         public static DcrmConnector Get()
         {
             if (_dcrmConnector == null)
@@ -98,18 +103,23 @@ namespace DCRM_Utils
 
             return _dcrmConnector;
         }
+        #endregion // Get
 
+        #region GetContext
         public static ServiceContext GetContext()
         {
             _dcrmConnector = DcrmConnectorFactory.Get();
             return _dcrmConnector.SrvContext;
         }
+        #endregion // GetContext
 
+        #region Close
         public static void Close()
         {
             var dcrmConnector = DcrmConnectorFactory.Get();
             if (dcrmConnector != null)
                 dcrmConnector.Disconnect();
         }
+        #endregion // Close
     }
 }

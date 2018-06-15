@@ -1,2 +1,0 @@
-D:\Orange\OREKA\DCRM\ORM_trunk\Batches\BatchImportIncidents\BatchImportIncidents.Installer\bin\Debug\BatchImportIncidents-Debug-x86.msi
-D:\Orange\OREKA\DCRM\ORM_trunk\Batches\BatchImportIncidents\BatchImportIncidents.Installer\bin\Debug\BatchImportIncidents-Debug-x86.wixpdb

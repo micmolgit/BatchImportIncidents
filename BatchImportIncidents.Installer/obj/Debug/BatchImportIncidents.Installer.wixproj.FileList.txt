@@ -1,9 +1,0 @@
-D:\Orange\OREKA\DCRM\ORM_trunk\Batches\BatchImportIncidents\BatchImportIncidents.Installer\bin\Debug\BatchImportIncidents-Debug-x86.msi
-D:\Orange\OREKA\DCRM\ORM_trunk\Batches\BatchImportIncidents\BatchImportIncidents.Installer\bin\Debug\BatchImportIncidents-Debug-x86.wixpdb
-obj\Debug\Components.wixobj
-obj\Debug\ComponentsGenerated.wixobj
-obj\Debug\Directories.wixobj
-obj\Debug\Product.wixobj
-obj\Debug\BatchImportIncidents.Installer.wixproj.BindContentsFileListnull.txt
-obj\Debug\BatchImportIncidents.Installer.wixproj.BindOutputsFileListnull.txt
-obj\Debug\BatchImportIncidents.Installer.wixproj.BindBuiltOutputsFileListnull.txt

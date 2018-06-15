@@ -9,28 +9,42 @@ namespace DCRM_Utils
         #region Properties
         private Stopwatch _stopwatch;
         private static int _CurrentIndex = 0;
-        
-        public delegate void MessageDisplayer(string message);
-        public delegate void ProgressDisplayer(int maxIndex);
 
-        public static MessageDisplayer WriteLine = DisplayMessageMethod;
-        public static ProgressDisplayer IncrementProgressBar = IncrementProgressBarMethod;
+        public delegate void MessageDisplayer(string message);
+        public delegate void ProgressDisplayer(int maxCount);
+
+        private static MessageDisplayer WriteLine = DisplayMessageMethod;
+        private static ProgressDisplayer IncrementProgressBar = IncrementProgressBarMethod;
 
         #endregion // Properties
 
+        #region DisplayProgression
+        public static void DisplayProgression(int maxCount)
+        {
+            IncrementProgressBar.Invoke(maxCount);
+        }
+        #endregion // DisplayProgression
+
+        #region PrintMessage
+        public static void PrintMessage(string message)
+        {
+            WriteLine.Invoke(message);
+        }
+        #endregion // PrintMessage
+
         #region DisplayMessageMethod
         // Create a method for a delegate.
-        public static void DisplayMessageMethod(string message)
+        private static void DisplayMessageMethod(string message)
         {
             Console.WriteLine(message);
         }
         #endregion // DisplayMessageMethod
 
         #region IncrementProgressBarMethod
-        private static void IncrementProgressBarMethod(int maxIndex)
+        private static void IncrementProgressBarMethod(int maxCount)
         {
             _CurrentIndex++;
-            DrawTextProgressBar(_CurrentIndex, maxIndex);
+            DrawTextProgressBar(_CurrentIndex, maxCount);
         }
         #endregion // IncrementProgressBarMethod
 
@@ -98,7 +112,7 @@ namespace DCRM_Utils
         #region PauseExecution
         public static void PauseExecution()
         {
-            MiscHelper.WriteLine("Press any key to exit.");
+            MiscHelper.PrintMessage("Press any key to exit.");
             Console.ReadKey();
         }
         #endregion // PauseExecution

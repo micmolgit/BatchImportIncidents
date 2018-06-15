@@ -3,7 +3,6 @@ using System.ServiceModel;
 using Nito.AsyncEx;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using DCRM_Utils;
 
 namespace BatchImportIncidents
@@ -19,10 +18,16 @@ namespace BatchImportIncidents
         public static void PrintUsage()
         {
             var exeName = Assembly.GetExecutingAssembly().GetName().Name;
-            MiscHelper.WriteLine($"Usage :\n" +
-                $"- {exeName}.exe -{STR_IMPORT}{STR_RESOLVE} <.csv path > to import and resolve incidents\n" +
-                $"- {exeName}.exe -{STR_IMPORT} <.csv path> to ONLY import incidents\n" +
-                $"- {exeName}.exe -{STR_RESOLVE} <.csv path> to ONLY resolve incidents\n");
+
+            MiscHelper.PrintMessage(
+              $"**************************************************************************************************************\n" +
+              $"* Usage :                                                                                                    *\n" +
+              $"*                                                                                                            *\n" +
+              $"* - {exeName}.exe -{STR_IMPORT} <.csv path> to import incidents                                              *\n" +
+              $"*                                                                                                            *\n" +
+              $"* - {exeName}.exe -{STR_RESOLVE} <.csv path> to resolve incidents                                             *\n" +
+              $"*                                                                                                            *\n" +
+              $"**************************************************************************************************************");
             MiscHelper.PauseExecution();
         }
         #endregion // PrintUsage
@@ -59,8 +64,6 @@ namespace BatchImportIncidents
                     throw new ArgumentException(message);
                 }
 
-                var proccessIncidentsTasks = new List<Task<int>>();
-
                 batch = new BatchImportIncidents(sourceFilePath, command, isCallingResolve, isCallingImport);
                 var incidentCountBatch = await batch.Process();
 
@@ -68,40 +71,40 @@ namespace BatchImportIncidents
             }
             catch (FaultException<Microsoft.Xrm.Sdk.OrganizationServiceFault> ex)
             {
-                MiscHelper.WriteLine("The application terminated with an error.");
-                MiscHelper.WriteLine($"Timestamp: { ex.Detail.Timestamp}");
-                MiscHelper.WriteLine($"Code: {ex.Detail.ErrorCode}");
-                MiscHelper.WriteLine($"Message: {ex.Detail.Message}");
-                MiscHelper.WriteLine($"Plugin Trace: {ex.Detail.TraceText}");
+                MiscHelper.PrintMessage("The application terminated with an error.");
+                MiscHelper.PrintMessage($"Timestamp: { ex.Detail.Timestamp}");
+                MiscHelper.PrintMessage($"Code: {ex.Detail.ErrorCode}");
+                MiscHelper.PrintMessage($"Message: {ex.Detail.Message}");
+                MiscHelper.PrintMessage($"Plugin Trace: {ex.Detail.TraceText}");
                 if (ex.InnerException != null)
-                    MiscHelper.WriteLine($"Inner Fault: { ex.InnerException.Message ?? "No Inner Fault"}");
+                    MiscHelper.PrintMessage($"Inner Fault: { ex.InnerException.Message ?? "No Inner Fault"}");
             }
             catch (System.TimeoutException ex)
             {
-                MiscHelper.WriteLine("The application terminated with an error.");
-                MiscHelper.WriteLine($"Message: {ex.Message}");
-                MiscHelper.WriteLine($"Stack Trace: {ex.StackTrace}");
+                MiscHelper.PrintMessage("The application terminated with an error.");
+                MiscHelper.PrintMessage($"Message: {ex.Message}");
+                MiscHelper.PrintMessage($"Stack Trace: {ex.StackTrace}");
                 if (ex.InnerException != null)
-                    MiscHelper.WriteLine($"Inner Fault: { ex.InnerException.Message ?? "No Inner Fault"}");
+                    MiscHelper.PrintMessage($"Inner Fault: { ex.InnerException.Message ?? "No Inner Fault"}");
             }
             catch (System.Exception ex)
             {
-                MiscHelper.WriteLine($"The application terminated with an error : {ex.Message}");
+                MiscHelper.PrintMessage($"The application terminated with an error : {ex.Message}");
 
                 // Display the details of the inner exception.
                 if (ex.InnerException != null)
                 {
-                    MiscHelper.WriteLine(ex.InnerException.Message);
+                    MiscHelper.PrintMessage(ex.InnerException.Message);
 
                     if (ex.InnerException is FaultException<Microsoft.Xrm.Sdk.OrganizationServiceFault> fe)
                     {
-                        MiscHelper.WriteLine($"Timestamp: {fe.Detail.Timestamp}");
-                        MiscHelper.WriteLine($"Code: {fe.Detail.ErrorCode}");
-                        MiscHelper.WriteLine($"Message: {fe.Detail.Message}");
-                        MiscHelper.WriteLine($"Plugin Trace: {fe.Detail.TraceText}");
+                        MiscHelper.PrintMessage($"Timestamp: {fe.Detail.Timestamp}");
+                        MiscHelper.PrintMessage($"Code: {fe.Detail.ErrorCode}");
+                        MiscHelper.PrintMessage($"Message: {fe.Detail.Message}");
+                        MiscHelper.PrintMessage($"Plugin Trace: {fe.Detail.TraceText}");
                         var message = string.Format("Inner Fault: {0}",
                             null == fe.Detail.InnerFault ? "No Inner Fault" : "Has Inner Fault");
-                        MiscHelper.WriteLine(message);
+                        MiscHelper.PrintMessage(message);
                     }
                 }
             }
@@ -119,6 +122,7 @@ namespace BatchImportIncidents
         static void Main(string[] args)
         {
             AsyncContext.Run(() => MainAsync(args));
+            //AsyncContext.Run(() => WorkWithTasksAsync());
         }
         #endregion // Main
     }

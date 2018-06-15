@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.Xrm.Sdk;
-using System.Threading.Tasks;
-using DCRM_Utils;
 using Microsoft.Crm.Sdk.Messages;
-using System.Threading;
+using DCRM_Utils;
+using System.Threading.Tasks;
 
 namespace BatchImportIncidents
 {
     class Demande
     {
         #region CONST Strings
+        private const string HEADER_PROPRIETAIRE = "Propriétaire";
+        private const string HEADER_OWNER = "Propriétaire";
         private const string HEADER_ACCOUNT = "Compte";
         private const string HEADER_CLIENT = "Client";
         private const string HEADER_DESCRIPTION = "Description";
@@ -33,8 +33,8 @@ namespace BatchImportIncidents
 
         #region Attributes
 
-        public delegate void IncidentCreator(int currentIndex, int maxIndex, bool isCallingResolve);
-        public delegate void IncidentResolver(int currentIndex, int maxIndex, Guid incidentId);
+        public delegate void IncidentCreator(int currentIndex, int maxCount, bool isCallingResolve);
+        public delegate void IncidentResolver(int currentIndex, int maxCount, Guid incidentId);
 
         private readonly Dictionary<string, string> AccountDict = new Dictionary<string, string>();
         private Dictionary<string, string> IncidentReadDict = new Dictionary<string, string>
@@ -46,6 +46,7 @@ namespace BatchImportIncidents
             { HEADER_THEME3, ""},
             { HEADER_TITRE, ""},
             { HEADER_ACCOUNT, ""},
+            { HEADER_PROPRIETAIRE, ""},
             { HEADER_STATUT, ""},
             { HEADER_RAISON_STATUT, ""}
         };
@@ -58,8 +59,11 @@ namespace BatchImportIncidents
             { HEADER_TITRE, ""},
             { HEADER_CLIENT, ""},
             { HEADER_STATUT, ""},
+            { HEADER_OWNER, ""},
             { HEADER_RAISON_STATUT, ""}
         };
+
+        public bool IsCallingResolve { get; set; }
         #endregion // Attributes
 
         #region SetFieldValue
@@ -115,17 +119,90 @@ namespace BatchImportIncidents
             }
             catch (Exception Ex)
             {
-                MiscHelper.WriteLine($"GetGuidFromEntity : {Ex.Message}");
+                MiscHelper.PrintMessage($"GetGuidFromEntity : {Ex.Message}");
             }
 
             return guid;
         }
         #endregion // GetGuidFromAccount
 
-        #region Resolve
-        public Thread Resolve(int currentIndex, int maxIndex, Guid incidentId, bool isPrintingProgress)
+        #region AddCreateIncidentWorkerTask
+        public void AddCreateIncidentWorkerTask(List<Task<bool>> taskList, int currentIndex, int maxCount)
         {
-            Thread th = null;
+            var task = this.CreateIncident(currentIndex, maxCount, this.IsCallingResolve);
+            taskList.Add(task);
+        }
+        #endregion // AddCreateIncidentWorkerTask
+
+        #region AddResolveIncidentWorkerTask
+        public void AddResolveIncidentWorkerTask(List<Task<bool>> taskList, Guid guidDemande, int currentIndex, int maxCount)
+        {
+            var task = this.Resolve(currentIndex, maxCount, guidDemande, true);
+            taskList.Add(task);
+        }
+        #endregion // AddResolveIncidentWorkerTask
+
+        #region CreateIncident
+        public async Task<bool> CreateIncident(int currentIndex, int maxCount, bool isCallingResolve)
+        {
+            var isOperationSuccessfull = false;
+
+            var ctx = DcrmConnectorFactory.GetContext();
+            var dcrmConnector = DcrmConnectorFactory.Get();
+            var srv = dcrmConnector.GetService();
+            Guid incidentId = Guid.Empty;
+
+           var createIncidentTimer = new MiscHelper();
+            createIncidentTimer.StartTimeWatch();
+
+            var accountId = this.IncidentWriteDict[HEADER_CLIENT];
+            if (string.IsNullOrEmpty(accountId))
+            {
+                var accountNumber = this.IncidentWriteDict[HEADER_ACCOUNT];
+                MiscHelper.PrintMessage($"GUID for account : {accountNumber} won't be created");
+
+                return isOperationSuccessfull;
+            }
+
+            var targetIncident = new Entity("incident");
+            targetIncident["customerid"] = new EntityReference(Account.EntityLogicalName, new Guid(accountId));
+            targetIncident["title"] = this.IncidentWriteDict[HEADER_TITRE];
+            targetIncident["description"] = this.IncidentWriteDict[HEADER_DESCRIPTION];
+
+            var guidTheme1 = new Guid(this.IncidentWriteDict[GUID_THEME1]);
+            var theme1Entity = new EntityReference("crm_themeniveau1", guidTheme1);
+            targetIncident["crm_theme_niveau_1_id"] = theme1Entity;
+
+            var guidTheme2 = new Guid(this.IncidentWriteDict[GUID_THEME2]);
+            var theme2Entity = new EntityReference("crm_themeniveau2", guidTheme2);
+            targetIncident["crm_theme_niveau_2_id"] = theme2Entity;
+
+            var guidTheme3 = new Guid(this.IncidentWriteDict[GUID_THEME3]);
+            var theme3Entity = new EntityReference("crm_themeniveau3", guidTheme3);
+            targetIncident["crm_theme_niveau_3_id"] = theme3Entity;
+
+            var teamId = new Guid(this.IncidentWriteDict[HEADER_OWNER]);
+            targetIncident["ownerid"] = new EntityReference(Team.EntityLogicalName, teamId);
+
+            await Task<bool>.Run(() =>
+            {
+                incidentId = srv.Create(targetIncident);
+                if (isCallingResolve)
+                    isOperationSuccessfull = Resolve(currentIndex, maxCount, incidentId, false).Result;
+                
+                MiscHelper.DisplayProgression(maxCount);
+            });
+
+            createIncidentTimer.StopTimeWatch();
+
+            return isOperationSuccessfull;
+        }
+        #endregion // CreateIncident
+
+        #region Resolve
+        public async Task<bool> Resolve(int currentIndex, int maxCount, Guid incidentId, bool isPrintingProgress)
+        {
+            bool isOperationSuccessfull = false;
 
             var ctx = DcrmConnectorFactory.GetContext();
             var dcrmConnector = DcrmConnectorFactory.Get();
@@ -146,102 +223,62 @@ namespace BatchImportIncidents
 
             try
             {
-                th = new Thread(() =>
-                {
-                    ctx.Execute(closeIncidentReq);
-                    if (isPrintingProgress)
-                        MiscHelper.IncrementProgressBar(maxIndex);
-                });
-                th.Start();
+                ctx.Execute(closeIncidentReq);
+                if (isPrintingProgress)
+                    MiscHelper.DisplayProgression(maxCount);
+
+                isOperationSuccessfull = true;
             }
             catch (Exception ex)
             {
                 var message = string.Format($"Could not close the incident : {incidentId} : {ex.Message} ");
-                MiscHelper.WriteLine(message);
+                MiscHelper.PrintMessage(message);
             }
-            return th;
+
+            return isOperationSuccessfull;
         }
         #endregion // Resolve
-
-        #region Create
-        public Thread Create(int currentIndex, int maxIndex, bool isCallingResolve)
-        {
-            Thread th = new Thread(() =>
-            {
-                IncidentCreator Create = CreateAndCloseIncident;
-                Create(currentIndex, maxIndex, isCallingResolve);
-            });
-            th.Start();
-
-            return th;
-        }
-        #endregion // Create
-
-        #region CreateAndCloseIncident
-        public void CreateAndCloseIncident(int currentIndex, int maxIndex, bool isCallingResolve)
-        {
-            var ctx = DcrmConnectorFactory.GetContext();
-            var dcrmConnector = DcrmConnectorFactory.Get();
-            var srv = dcrmConnector.GetService();
-            Guid incidentId = Guid.Empty;
-
-           var createIncidentTimer = new MiscHelper();
-            createIncidentTimer.StartTimeWatch();
-
-            var accountId = this.IncidentWriteDict[HEADER_CLIENT];
-            if (string.IsNullOrEmpty(accountId))
-            {
-                var accountNumber = this.IncidentWriteDict[HEADER_ACCOUNT];
-                MiscHelper.WriteLine($"GUID for account : {accountNumber} won't be created");
-                return;
-            }
-
-            var targetIncident = new Entity("incident");
-            targetIncident["customerid"] = new EntityReference(Account.EntityLogicalName, new Guid(accountId));
-            targetIncident["title"] = this.IncidentWriteDict[HEADER_TITRE];
-            targetIncident["description"] = this.IncidentWriteDict[HEADER_DESCRIPTION];
-
-            var guidTheme1 = new Guid(this.IncidentWriteDict[GUID_THEME1]);
-            var theme1Entity = new EntityReference("crm_themeniveau1", guidTheme1);
-            targetIncident["crm_theme_niveau_1_id"] = theme1Entity;
-
-            var guidTheme2 = new Guid(this.IncidentWriteDict[GUID_THEME2]);
-            var theme2Entity = new EntityReference("crm_themeniveau2", guidTheme2);
-            targetIncident["crm_theme_niveau_2_id"] = theme2Entity;
-
-            var guidTheme3 = new Guid(this.IncidentWriteDict[GUID_THEME3]);
-            var theme3Entity = new EntityReference("crm_themeniveau3", guidTheme3);
-            targetIncident["crm_theme_niveau_3_id"] = theme3Entity;
-
-            incidentId = srv.Create(targetIncident);
-            if (isCallingResolve)
-                this.Resolve(currentIndex, maxIndex, incidentId, false);
-            createIncidentTimer.StopTimeWatch();
-            
-            MiscHelper.IncrementProgressBar(maxIndex);
-        }
-        #endregion // CreateAndCloseIncident
 
         #region Process
         public void Process()
         {
-            var sb = new StringBuilder();
-
             foreach (var headerKey in IncidentReadDict.Keys)
             {
                 switch (headerKey)
                 {
+                    case HEADER_STATUT:
+                        {
+                            var statut = IncidentReadDict[headerKey];
+                            if (statut == VAUE_STATUT_RESOLVED)
+                                this.IsCallingResolve = true;
+                        }
+                        break;
                     case HEADER_ACCOUNT:
                         {
                             var accountNumber = IncidentReadDict[headerKey];
                             var guid = GetGuidFromEntity("account", "accountid", "accountnumber", accountNumber);
                             if (string.IsNullOrEmpty(guid))
                             {
-                                MiscHelper.WriteLine($"GUID for account : {accountNumber} could not be found in DCRM");
+                                MiscHelper.PrintMessage($"GUID for account : {accountNumber} could not be found in DCRM");
                             }
                             else
                             {
                                 IncidentWriteDict[HEADER_CLIENT] = guid;
+                            }
+                        }
+                        break;
+
+                    case HEADER_PROPRIETAIRE:
+                        {
+                            var teamName = IncidentReadDict[headerKey];
+                            var guid = GetGuidFromEntity("team", "teamid", "name", teamName);
+                            if (string.IsNullOrEmpty(guid))
+                            {
+                                MiscHelper.PrintMessage($"GUID for team : {teamName} could not be found in DCRM");
+                            }
+                            else
+                            {
+                                IncidentWriteDict[HEADER_OWNER] = guid;
                             }
                         }
                         break;

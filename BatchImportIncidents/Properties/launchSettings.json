@@ -2,7 +2,7 @@
   "profiles": {
     "BatchImportIncidents": {
       "commandName": "Project",
-      "commandLineArgs": "-ir C:\\Temp\\DCRM\\DemandesORM.csv"
+      "commandLineArgs": "-i C:\\Temp\\DCRM\\ExemplesDemandesToImport.csv"
     }
   }
 }
