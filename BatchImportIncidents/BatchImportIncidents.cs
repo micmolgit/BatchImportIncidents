@@ -218,11 +218,21 @@ namespace BatchImportIncidents
                 {
                     if (line.Count > 0)
                     {
+                        ++entriesCpt;
+
                         var demande = GetDemandeFromLine(dataHeader, line);
-                        demande.Process();
-                        demande.AddCreateIncidentWorkerTask(createIncidentTasks, ++entriesCpt, maxCount);
+                        try
+                        {
+                            demande.Process();
+                        }
+                        catch (Exception ex)
+                        {
+                            var innerMessage = ex.InnerException != null ? ex.InnerException.Message : string.Empty;
+                            MiscHelper.PrintMessage($"\nDemandeCreationException ({entriesCpt}] :  {ex.Message}  {innerMessage}");
+                        }                        
+                        demande.AddCreateIncidentWorkerTask(createIncidentTasks, entriesCpt, maxCount);
                     }
-                }                
+                }
 
                 // We need to wait for all tasks to be terminated
                 await System.Threading.Tasks.Task.WhenAll(createIncidentTasks);
