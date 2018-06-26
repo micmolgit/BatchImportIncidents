@@ -42,8 +42,8 @@ namespace BatchImportIncidents
         public delegate void IncidentResolver(int currentIndex, int maxCount, Guid incidentId);
 
         private readonly Dictionary<string, string> AccountDict = new Dictionary<string, string>();
-        private Dictionary<string, string> IncidentReadDict = new Dictionary<string, string>();       
-        private Dictionary<string, string> IncidentWriteDict = new Dictionary<string, string>();       
+        private Dictionary<string, string> IncidentReadDict = new Dictionary<string, string>();
+        private Dictionary<string, string> IncidentWriteDict = new Dictionary<string, string>();
 
         public bool IsCallingResolve { get; set; }
         #endregion // Attributes
@@ -116,7 +116,7 @@ namespace BatchImportIncidents
             var ctx = DcrmConnectorFactory.GetContext();
 
             var partyQuery = from party in ctx.CreateQuery("account")
-                             join client_facturation in ctx.CreateQuery("crm_clientdefacturation")                             
+                             join client_facturation in ctx.CreateQuery("crm_clientdefacturation")
                               on party["accountid"] equals client_facturation["crm_titulaireid"]
                              join contrat in ctx.CreateQuery("crm_contrat")
                                 on client_facturation["crm_titulaireid"] equals contrat["crm_account_id"]
@@ -132,12 +132,12 @@ namespace BatchImportIncidents
 
             try
             {
-                client = partyQuery.First();              
+                client = partyQuery.First();
             }
             catch (Exception Ex)
             {
                 MiscHelper.PrintMessage($"GetCrmClientFormCustCode : {Ex.Message}");
-            }           
+            }
 
             return client;
         }
@@ -315,8 +315,6 @@ namespace BatchImportIncidents
 
             var teamId = new Guid(this.IncidentWriteDict[HEADER_OWNER]);
             targetIncident["ownerid"] = new EntityReference(Team.EntityLogicalName, teamId);
-
-           
 
             await Task<bool>.Run(() =>
             {

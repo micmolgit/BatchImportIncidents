@@ -3,13 +3,13 @@
 
   <!-- Give product a unique ID per platform -->
   <?if $(var.Platform)=x64 ?>
-  <?define ProductCode = "{454C1EBF-E014-42EA-8FC4-1BBC7EA13E9A}" ?>
+  <?define ProductCode = "{423FDFD8-EF1D-4B94-B73C-205423C4E886}" ?>
   <?else?>
-  <?define ProductCode = "{3335FF43-BBD1-4D27-894C-6FFFC9D3FB89}" ?>
+  <?define ProductCode = "{40DA2EC0-FDFF-4356-B167-486F36F66108}" ?>
   <?endif?>
 
   <!-- Fixed upgrade Id -->
-  <?define UpgradeCode = "{CC68C962-AC27-4954-9123-89EFA28A8B97}" ?>
+  <?define UpgradeCode = "{294C7DB8-6DEC-4E97-BAEC-9E791A90B7B6}" ?>
 
   <!-- Define main product -->
   <Product Id="$(var.ProductCode)"

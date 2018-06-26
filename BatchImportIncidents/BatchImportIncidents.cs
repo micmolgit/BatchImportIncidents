@@ -49,7 +49,7 @@ namespace BatchImportIncidents
         }
         #endregion //Terminate
 
-        #region GetHeader
+        #region GetHeaderLine
         private string GetHeaderLine(IList<string> headerItems)
         {
             var sbHeader = new StringBuilder();
@@ -71,7 +71,7 @@ namespace BatchImportIncidents
 
             return (outputLine);
         }
-        #endregion // GetHeader
+        #endregion // GetHeaderLine
 
         #region GetDemandeFromLine
         public Demande GetDemandeFromLine(IList<string> header, IList<string> line)

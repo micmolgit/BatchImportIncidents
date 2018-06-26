@@ -122,7 +122,6 @@ namespace BatchImportIncidents
         static void Main(string[] args)
         {
             AsyncContext.Run(() => MainAsync(args));
-            //AsyncContext.Run(() => WorkWithTasksAsync());
         }
         #endregion // Main
     }
