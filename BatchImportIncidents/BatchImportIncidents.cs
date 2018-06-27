@@ -134,6 +134,8 @@ namespace BatchImportIncidents
                 MiscHelper.PrintMessage($"\n\n{maxCount} were scanned in {incidentCountTimer.GetDuration()}");
 
                 MiscHelper.PrintMessage("Connecting do DCRM...");
+
+                // Calling GetContext in order to provoke a authentication to DCRM before we actually needs it
                 DcrmConnectorFactory.GetContext();
 
                 var dataHeader = dataRead.Item1;
@@ -229,7 +231,7 @@ namespace BatchImportIncidents
                         {
                             var innerMessage = ex.InnerException != null ? ex.InnerException.Message : string.Empty;
                             MiscHelper.PrintMessage($"\nDemandeCreationException ({entriesCpt}] :  {ex.Message}  {innerMessage}");
-                        }                        
+                        }
                         demande.AddCreateIncidentWorkerTask(createIncidentTasks, entriesCpt, maxCount);
                     }
                 }
